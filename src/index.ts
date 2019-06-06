@@ -1,15 +1,20 @@
 import consola from 'consola'
 import { ArgumentsBuilder, RequestBuilder } from './builders'
 
+// load .env variables
 require('dotenv').config()
 
+/**
+ * SlackCleaner class
+ * - This class can delete all messages from user or channel on Slack.
+ */
 export class SlackCleaner {
-  private token?: string
-  private channel: string
-  private readonly user?: string
-  private delay?: number
-  private nextCursor?: string
-  private index?: number
+  private token: string // token to make requests to slack api
+  private channel: string // the channel id for searching messages
+  private readonly user: string // the user id
+  private delay: number // delay for between each request
+  private nextCursor: string // the next page to be fetched
+  private index: number // keep track of what chunk we're getting
 
   constructor() {
     consola.info({
@@ -35,10 +40,17 @@ export class SlackCleaner {
     }
   }
 
+  /**
+   * Call messages handler
+   */
   init() {
     this.handleMessages()
   }
 
+  /**
+   * Manage parameters
+   * - This method can get parameters from cli as arguments or from a .env file
+   */
   private getParameters() {
     let options: any = {}
     const requestDelayDefaultValue = 400
@@ -49,6 +61,7 @@ export class SlackCleaner {
     })
 
     try {
+      // try to get options from arguments
       const args = new ArgumentsBuilder()
         .withVersion('1.0.0')
         .withOption({
@@ -90,6 +103,7 @@ export class SlackCleaner {
         err.message.startsWith('Missing required parameter:') &&
         (SLACK_CHANNEL && SLACK_USER && SLACK_TOKEN)
       ) {
+        // try to get options from .env file
         options.channel = SLACK_CHANNEL
         options.user = SLACK_USER
         options.token = SLACK_TOKEN
@@ -102,13 +116,16 @@ export class SlackCleaner {
     return options
   }
 
+  /**
+   * Handler for deleting a chunk of messages
+   */
   async handleMessages() {
-    this.index = this.index ? this.index + 1 : 1
+    this.index = this.index ? this.index + 1 : 1 // increment index
 
     consola.info(`Getting chunk number: ${this.index}`)
 
     try {
-      const history: any = await this.getHistory()
+      const history: any = await this.getHistory() // get messages from history slack api
 
       if (history && history.ok) {
         if (history.messages && history.messages.length) {
@@ -119,13 +136,13 @@ export class SlackCleaner {
 
             this.deleteMessageList(userMessages)
               .then(async () => {
-                consola.info('Message chunk deleted;')
+                consola.info('Message chunk deleted.')
 
                 if (history.has_more) {
                   this.nextCursor = history.response_metadata.next_cursor
                   this.handleMessages()
                 } else {
-                  consola.info('Loop finished;')
+                  consola.info('Loop finished.')
                   this.nextCursor = null
                 }
               })
@@ -139,16 +156,16 @@ export class SlackCleaner {
               this.nextCursor = history.response_metadata.next_cursor
               this.handleMessages()
             } else {
-              consola.info('Loop finished;')
+              consola.info('Loop finished.')
               this.nextCursor = null
             }
           }
         } else {
-          consola.info('Loop finished;')
+          consola.info('Loop finished.')
           this.nextCursor = null
         }
       } else {
-        throw new Error('Cannot get history;')
+        throw new Error('Cannot get history.')
       }
     } catch (err) {
       consola.error(err.message)
@@ -172,7 +189,7 @@ export class SlackCleaner {
     } catch (err) {
       consola.error({
         badge: true,
-        message: 'Error while getting conversations;',
+        message: 'Error while getting conversations.',
       })
       consola.error(err.message)
     }
@@ -185,12 +202,12 @@ export class SlackCleaner {
           setTimeout(() => {
             this.deleteMessage(message.ts)
               .then(response => {
-                consola.info('Message deleted;')
+                consola.info('Message deleted.')
                 consola.info(message.text)
                 resolve(response)
               })
               .catch(err => {
-                consola.error('Error deleting message;')
+                consola.error('Error deleting message.')
                 consola.error(message.text)
                 reject(err)
               })
@@ -216,6 +233,10 @@ export class SlackCleaner {
       return data
     } else if (data.error === 'ratelimited') {
       this.delay = this.delay + 100
+      consola.warn({
+        badge: true,
+        message: `Increasing delay to: ${this.delay}`,
+      })
     } else {
       throw new Error('[!] Error while deleting message.')
     }

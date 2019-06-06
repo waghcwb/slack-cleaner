@@ -13,7 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const consola_1 = __importDefault(require("consola"));
 const builders_1 = require("./builders");
+// load .env variables
 require('dotenv').config();
+/**
+ * SlackCleaner class
+ * - This class can delete all messages from user or channel on Slack.
+ */
 class SlackCleaner {
     constructor() {
         consola_1.default.info({
@@ -36,9 +41,16 @@ class SlackCleaner {
             });
         }
     }
+    /**
+     * Call messages handler
+     */
     init() {
         this.handleMessages();
     }
+    /**
+     * Manage parameters
+     * - This method can get parameters from cli as arguments or from a .env file
+     */
     getParameters() {
         let options = {};
         const requestDelayDefaultValue = 400;
@@ -47,6 +59,7 @@ class SlackCleaner {
             message: 'Getting parameters.',
         });
         try {
+            // try to get options from arguments
             const args = new builders_1.ArgumentsBuilder()
                 .withVersion('1.0.0')
                 .withOption({
@@ -80,6 +93,7 @@ class SlackCleaner {
             const { SLACK_CHANNEL, SLACK_USER, SLACK_TOKEN, SLACK_REQUEST_DELAY = requestDelayDefaultValue, } = process.env;
             if (err.message.startsWith('Missing required parameter:') &&
                 (SLACK_CHANNEL && SLACK_USER && SLACK_TOKEN)) {
+                // try to get options from .env file
                 options.channel = SLACK_CHANNEL;
                 options.user = SLACK_USER;
                 options.token = SLACK_TOKEN;
@@ -91,12 +105,15 @@ class SlackCleaner {
         }
         return options;
     }
+    /**
+     * Handler for deleting a chunk of messages
+     */
     handleMessages() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.index = this.index ? this.index + 1 : 1;
+            this.index = this.index ? this.index + 1 : 1; // increment index
             consola_1.default.info(`Getting chunk number: ${this.index}`);
             try {
-                const history = yield this.getHistory();
+                const history = yield this.getHistory(); // get messages from history slack api
                 if (history && history.ok) {
                     if (history.messages && history.messages.length) {
                         const userMessages = this.findUserMessages(history.messages);
@@ -104,13 +121,13 @@ class SlackCleaner {
                             consola_1.default.info('Found user messages.');
                             this.deleteMessageList(userMessages)
                                 .then(() => __awaiter(this, void 0, void 0, function* () {
-                                consola_1.default.info('Message chunk deleted;');
+                                consola_1.default.info('Message chunk deleted.');
                                 if (history.has_more) {
                                     this.nextCursor = history.response_metadata.next_cursor;
                                     this.handleMessages();
                                 }
                                 else {
-                                    consola_1.default.info('Loop finished;');
+                                    consola_1.default.info('Loop finished.');
                                     this.nextCursor = null;
                                 }
                             }))
@@ -125,18 +142,18 @@ class SlackCleaner {
                                 this.handleMessages();
                             }
                             else {
-                                consola_1.default.info('Loop finished;');
+                                consola_1.default.info('Loop finished.');
                                 this.nextCursor = null;
                             }
                         }
                     }
                     else {
-                        consola_1.default.info('Loop finished;');
+                        consola_1.default.info('Loop finished.');
                         this.nextCursor = null;
                     }
                 }
                 else {
-                    throw new Error('Cannot get history;');
+                    throw new Error('Cannot get history.');
                 }
             }
             catch (err) {
@@ -162,7 +179,7 @@ class SlackCleaner {
             catch (err) {
                 consola_1.default.error({
                     badge: true,
-                    message: 'Error while getting conversations;',
+                    message: 'Error while getting conversations.',
                 });
                 consola_1.default.error(err.message);
             }
@@ -175,12 +192,12 @@ class SlackCleaner {
                     setTimeout(() => {
                         this.deleteMessage(message.ts)
                             .then(response => {
-                            consola_1.default.info('Message deleted;');
+                            consola_1.default.info('Message deleted.');
                             consola_1.default.info(message.text);
                             resolve(response);
                         })
                             .catch(err => {
-                            consola_1.default.error('Error deleting message;');
+                            consola_1.default.error('Error deleting message.');
                             consola_1.default.error(message.text);
                             reject(err);
                         });
@@ -205,6 +222,10 @@ class SlackCleaner {
             }
             else if (data.error === 'ratelimited') {
                 this.delay = this.delay + 100;
+                consola_1.default.warn({
+                    badge: true,
+                    message: `Increasing delay to: ${this.delay}`,
+                });
             }
             else {
                 throw new Error('[!] Error while deleting message.');
