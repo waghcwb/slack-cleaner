@@ -1,7 +1,7 @@
 {
   "name": "slack-cleaner",
   "version": "1.0.0",
-  "description": "Delete all messages from user and channel",
+  "description": "Delete all messages from user or channel",
   "main": "dist/app.bundle.js",
   "scripts": {
     "dev": "./node_modules/.bin/nodemon node dist",

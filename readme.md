@@ -1,10 +1,10 @@
-## Slack Cleaner
-A tool to delete all messages from your account or channel.
+# Slack Cleaner
+A tool to delete all messages from your slack account or channel.
 
-### How it works
+## How it works
 `Todo: describe how it works`
 
-### Getting started
+## Getting started
 You need three things to get started
 - The channel id
 - The username to delete messages from
@@ -13,19 +13,19 @@ You need three things to get started
 `Todo: insert instruction on how to get those infos.`
 
 ```bash
-# node dist/app.bundle.js --channel <channel_id> --user <user_id> --token <token>
+node dist/app.bundle.js --channel <channel_id> --user <user_id> --token <token>
 ```
 
-### Development
+## Development
 ``` bash
-# npm install
-# npm run dev
+npm install
+npm run dev
 ```
 
-### Todo's
-- [ ] Export messages from somewhere
-- [ ] Make user not required for deleting
-- [ ] Improve typing
+## Todo's
+- [ ] Export messages to somewhere
+- [ ] Make user not required for deleting messages
+- [ ] Improve type system
 - [ ] Create unit tests
 - [ ] Create npm package
 - [ ] Improve readme
@@ -37,5 +37,5 @@ You need three things to get started
 - [ ] Support for multiple channels
 
 
-### License
+## License
 MIT © Wagner Souza
